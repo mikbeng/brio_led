@@ -1,0 +1,21 @@
+{
+    "project_name":       "bootloader",
+    "project_path":       "/home/mikbeng/esp/esp-idf-stable/components/bootloader/subproject",
+    "build_dir":          "/home/mikbeng/esp/brio_led/build/bootloader",
+    "config_file":        "/home/mikbeng/esp/brio_led/sdkconfig",
+    "config_defaults":    "",
+    "app_elf":            "bootloader.elf",
+    "app_bin":            "bootloader.bin",
+    "git_revision":       "v4.4.2",
+    "target":             "esp32",
+    "rev":                "0",
+    "phy_data_partition": "",
+    "monitor_baud" :      "115200",
+    "monitor_toolprefix": "xtensa-esp32-elf-",
+    "config_environment" : {
+        "COMPONENT_KCONFIGS" : "/home/mikbeng/esp/esp-idf-stable/components/efuse/Kconfig;/home/mikbeng/esp/esp-idf-stable/components/esp32/Kconfig;/home/mikbeng/esp/esp-idf-stable/components/esp_common/Kconfig;/home/mikbeng/esp/esp-idf-stable/components/esp_hw_support/Kconfig;/home/mikbeng/esp/esp-idf-stable/components/esp_system/Kconfig;/home/mikbeng/esp/esp-idf-stable/components/freertos/Kconfig;/home/mikbeng/esp/esp-idf-stable/components/hal/Kconfig;/home/mikbeng/esp/esp-idf-stable/components/log/Kconfig;/home/mikbeng/esp/esp-idf-stable/components/newlib/Kconfig;/home/mikbeng/esp/esp-idf-stable/components/spi_flash/Kconfig",
+        "COMPONENT_KCONFIGS_PROJBUILD" : "/home/mikbeng/esp/esp-idf-stable/components/bootloader/Kconfig.projbuild;/home/mikbeng/esp/esp-idf-stable/components/esp_rom/Kconfig.projbuild;/home/mikbeng/esp/esp-idf-stable/components/esptool_py/Kconfig.projbuild;/home/mikbeng/esp/esp-idf-stable/components/partition_table/Kconfig.projbuild"
+    },
+    "build_components" : [ "bootloader", "bootloader_support", "efuse", "esp32", "esp_common", "esp_hw_support", "esp_rom", "esp_system", "esptool_py", "freertos", "hal", "log", "main", "micro-ecc", "newlib", "partition_table", "soc", "spi_flash", "xtensa", "" ],
+    "build_component_paths" : [ "/home/mikbeng/esp/esp-idf-stable/components/bootloader", "/home/mikbeng/esp/esp-idf-stable/components/bootloader_support", "/home/mikbeng/esp/esp-idf-stable/components/efuse", "/home/mikbeng/esp/esp-idf-stable/components/esp32", "/home/mikbeng/esp/esp-idf-stable/components/esp_common", "/home/mikbeng/esp/esp-idf-stable/components/esp_hw_support", "/home/mikbeng/esp/esp-idf-stable/components/esp_rom", "/home/mikbeng/esp/esp-idf-stable/components/esp_system", "/home/mikbeng/esp/esp-idf-stable/components/esptool_py", "/home/mikbeng/esp/esp-idf-stable/components/freertos", "/home/mikbeng/esp/esp-idf-stable/components/hal", "/home/mikbeng/esp/esp-idf-stable/components/log", "/home/mikbeng/esp/esp-idf-stable/components/bootloader/subproject/main", "/home/mikbeng/esp/esp-idf-stable/components/bootloader/subproject/components/micro-ecc", "/home/mikbeng/esp/esp-idf-stable/components/newlib", "/home/mikbeng/esp/esp-idf-stable/components/partition_table", "/home/mikbeng/esp/esp-idf-stable/components/soc", "/home/mikbeng/esp/esp-idf-stable/components/spi_flash", "/home/mikbeng/esp/esp-idf-stable/components/xtensa", "" ]
+}

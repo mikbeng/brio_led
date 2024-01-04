@@ -1,0 +1,4 @@
+source "/home/mikbeng/esp/esp-idf-stable/components/bootloader/Kconfig.projbuild"
+source "/home/mikbeng/esp/esp-idf-stable/components/esp_rom/Kconfig.projbuild"
+source "/home/mikbeng/esp/esp-idf-stable/components/esptool_py/Kconfig.projbuild"
+source "/home/mikbeng/esp/esp-idf-stable/components/partition_table/Kconfig.projbuild"
