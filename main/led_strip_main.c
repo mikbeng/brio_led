@@ -14,13 +14,16 @@
 #include "led_strip.h"
 #include "rotary_encoder.h"
 
+#include "math.h"
+
 static const char *TAG = "example";
 
 #define RMT_TX_CHANNEL RMT_CHANNEL_0
 
-#define EXAMPLE_CHASE_SPEED_MS (10)
+#define EXAMPLE_CHASE_SPEED_MS (20)
 
 #define ENCODER_CPR (32)
+
 
 /**
  * @brief Simple helper function, converting HSV color space to RGB color space
@@ -80,22 +83,19 @@ int32_t encoder_value_to_deg(int32_t enc_value){
 
 uint8_t encoder_to_wheelstate(int32_t enc_angle){
     int32_t step_deg = 60;
-    int32_t span = 20;
+    int32_t span = 25;
 
     uint8_t state = 0xFF;
 
-    enc_angle = enc_angle % 360;
-
-    //Handle first case where enc_angle is between 320 and 360 
-
-    // if((enc_angle >= ((-span)+i*step_deg)) && (enc_angle <= ((span)+i*step_deg))){
-    //         state = i;
-    // }
+    int32_t wrapped_angle = enc_angle % 360;
+    if (wrapped_angle < 0) {
+        wrapped_angle += 360;
+    }
 
     for (uint8_t i = 0; i < 6; i++)
     {
         //enc_angle is between span
-        if((enc_angle >= ((-span)+i*step_deg)) && (enc_angle <= ((span)+i*step_deg))){
+        if((wrapped_angle >= ((-span)+i*step_deg)) && (wrapped_angle <= ((span)+i*step_deg))){
             state = i;
         }
     }
@@ -104,9 +104,85 @@ uint8_t encoder_to_wheelstate(int32_t enc_angle){
   
 }
 
+void set_pixels(uint32_t red, uint32_t green, uint32_t blue, led_strip_t *strip){
+    for (int j = 0; j < CONFIG_EXAMPLE_STRIP_LED_NUMBER; j++) {
+        ESP_ERROR_CHECK(strip->set_pixel(strip, j, red, green, blue));
+    }
+    ESP_ERROR_CHECK(strip->refresh(strip, 100));
+}
+
+static void pattern_RunningLights(uint32_t red, uint32_t green, uint32_t blue, int WaveDelay, led_strip_t *strip, rotary_encoder_t *encoder_a, rotary_encoder_t *encoder_b) {
+  
+    uint16_t num_pixels = CONFIG_EXAMPLE_STRIP_LED_NUMBER;
+    int Position=0;
+
+    uint8_t state_a_old = encoder_to_wheelstate(encoder_value_to_deg(encoder_a->get_counter_value(encoder_a)));
+
+
+    for(int i=0; i<num_pixels*2; i++)
+    {
+        if(encoder_to_wheelstate(encoder_value_to_deg(encoder_b->get_counter_value(encoder_b))) != 2){
+            break;  
+        }
+        if(encoder_to_wheelstate(encoder_value_to_deg(encoder_a->get_counter_value(encoder_a))) != state_a_old){
+            break;
+        }
+
+        Position++; // = 0; //Position + Rate;
+        for(int i=0; i<num_pixels; i++) {
+        // sine wave, 3 offset waves make a rainbow!
+        //float level = sin(i+Position) * 127 + 128;
+        //setPixel(i,level,0,0);
+        //float level = sin(i+Position) * 127 + 128;
+
+        ESP_ERROR_CHECK(strip->set_pixel(strip, i, 
+            ((sin(i+Position) * 127 + 128)/255)*(red), 
+            ((sin(i+Position) * 127 + 128)/255)*(green), 
+            ((sin(i+Position) * 127 + 128)/255)*(blue)));
+
+        ESP_ERROR_CHECK(strip->refresh(strip, 100));
+        }
+        vTaskDelay(pdMS_TO_TICKS(WaveDelay));
+        }
+}
+
+static void pattern_fade(uint32_t red, uint32_t green, uint32_t blue, int WaveDelay, led_strip_t *strip, int fadedelay, rotary_encoder_t *encoder_a, rotary_encoder_t *encoder_b) {
+    uint16_t num_pixels = CONFIG_EXAMPLE_STRIP_LED_NUMBER;
+
+    float fade = 1.0f;
+    int8_t sign = -1;
+    uint8_t state_a_old = encoder_to_wheelstate(encoder_value_to_deg(encoder_a->get_counter_value(encoder_a)));
+
+    while(1){
+        if(encoder_to_wheelstate(encoder_value_to_deg(encoder_b->get_counter_value(encoder_b))) != 1){
+            break;  
+        }
+        if(encoder_to_wheelstate(encoder_value_to_deg(encoder_a->get_counter_value(encoder_a))) != state_a_old){
+            break;
+        }
+
+        set_pixels((uint32_t)(red*fade), (uint32_t)(green*fade), (uint32_t)(blue*fade), strip);
+        fade = fade + (sign*0.01f);
+        vTaskDelay(pdMS_TO_TICKS(fadedelay));
+        if(fade < 0.0f){
+            sign = sign*-1;
+            fade = 0.0f;
+        }
+        if(fade > 1.0f){
+            sign = sign*-1;
+            fade = 1.0f;
+        }
+    }
+}
+
+
 void app_main(void)
 {
-    int32_t red = 0;
+    uint32_t red = 0;
+    uint32_t green = 0;
+    uint32_t blue = 0;
+    uint16_t hue = 0;
+    uint16_t start_rgb = 0;
     int8_t sign = 1;
 
     // Rotary encoder underlying device is represented by a PCNT unit in this example
@@ -122,7 +198,6 @@ void app_main(void)
 
     // Start encoder
     ESP_ERROR_CHECK(encoder_a->start(encoder_a));
-
 
     // Rotary encoder underlying device is represented by a PCNT unit in this example
     uint32_t pcnt_unit_b = 1;
@@ -155,8 +230,8 @@ void app_main(void)
     }
     // Clear LED strip (turn off all LEDs)
     ESP_ERROR_CHECK(strip->clear(strip, 100));
-    red =  255;
-    
+    red =  125;
+
     while (true) {
 
         // Flush RGB values to LEDs
@@ -165,45 +240,56 @@ void app_main(void)
         // strip->clear(strip, 50);
         // vTaskDelay(pdMS_TO_TICKS(1000));
         
-        ESP_LOGI(TAG, "Encoder a deg: %d", (encoder_value_to_deg(encoder_a->get_counter_value(encoder_a))));
+        //ESP_LOGI(TAG, "Encoder a deg: %d", (encoder_value_to_deg(encoder_a->get_counter_value(encoder_a))));
         uint8_t state_a = encoder_to_wheelstate(encoder_value_to_deg(encoder_a->get_counter_value(encoder_a)));
+        //ESP_LOGI(TAG, "wheel a state: %d", (state_a));
 
-        ESP_LOGI(TAG, "Encoder b deg: %d", (encoder_value_to_deg(encoder_b->get_counter_value(encoder_b))));
+        //ESP_LOGI(TAG, "Encoder b deg: %d", (encoder_value_to_deg(encoder_b->get_counter_value(encoder_b))));
         uint8_t state_b = encoder_to_wheelstate(encoder_value_to_deg(encoder_b->get_counter_value(encoder_b)));
 
-        //uint8_t state_b = 0;
+
+        if(state_a != 255){
+            led_strip_hsv2rgb(60*state_a, 100, 60, &red, &green, &blue);        //Set v to low (20) when hooking up with pc usb port. Otherwise brownout could occur
+            if(state_b == 0){   //only set pixels if state_b is 0
+                set_pixels(red, green, blue, strip);
+            }
+        }
+
         switch (state_b)
         {
         case 0:
-            ESP_ERROR_CHECK(strip->clear(strip, 100));
+            //Do nothing
+            vTaskDelay(pdMS_TO_TICKS(10));
             break;
         case 1:
-            for (int j = 0; j < CONFIG_EXAMPLE_STRIP_LED_NUMBER; j++) {
-                ESP_ERROR_CHECK(strip->set_pixel(strip, j, red, 0, 0));
-            }
-            ESP_ERROR_CHECK(strip->refresh(strip, 100));
+            pattern_fade(red, green, blue, 10, strip, 10, encoder_a, encoder_b);
             break;
         case 2: 
-            for (int j = 0; j < CONFIG_EXAMPLE_STRIP_LED_NUMBER; j++) {
-                ESP_ERROR_CHECK(strip->set_pixel(strip, j, 0, 255, 0));
-            }
-            ESP_ERROR_CHECK(strip->refresh(strip, 100));
+            pattern_RunningLights(red, green, blue, 10, strip, encoder_a, encoder_b);
+            vTaskDelay(pdMS_TO_TICKS(10));
             break;
 
         case 3: 
-            for (int j = 0; j < CONFIG_EXAMPLE_STRIP_LED_NUMBER; j++) {
-                ESP_ERROR_CHECK(strip->set_pixel(strip, j, 0, 0, 255));
-            }
-            ESP_ERROR_CHECK(strip->refresh(strip, 100));
+            vTaskDelay(pdMS_TO_TICKS(10));
             break;
+
+        case 4:
+            vTaskDelay(pdMS_TO_TICKS(10));
+            break;
+        
+        case 5:
+            vTaskDelay(pdMS_TO_TICKS(10));
+            break;
+
         default:
+            vTaskDelay(pdMS_TO_TICKS(10));
             break;
         }
 
-        ESP_LOGI(TAG, "wheel a state: %d", (state_a));
-        ESP_LOGI(TAG, "wheel b state: %d", (state_b));
+        //ESP_LOGI(TAG, "wheel a state: %d", (state_a));
+        //ESP_LOGI(TAG, "wheel b state: %d", (state_b));
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        //vTaskDelay(pdMS_TO_TICKS(1000));
 
     }
 
